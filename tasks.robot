@@ -1,51 +1,55 @@
 *** Settings ***
 Documentation     Salesforce API examples.
-...               Prerequisites:
-...               1. Register a developer account.
-...               2. View profile -> Settings -> Reset My Security Token
-...               3. Set up Robocorp vault:
-...               Vault name = salesforce
-...               username = The username of the account you registered.
-...               password = The password of the account you registered.
-...               token = The token from the security token reset mail.
+...               Prerequisites: See README.md
 Library           Collections
 Library           RPA.Robocorp.Vault
 Library           RPA.Salesforce
 Library           String
+Library           RPA.Tables
 Suite Setup       Authenticate
 Task Setup        Generate random name
 
-*** Variables ***
-${ACCOUNT_NAME}=    Burlington Textiles Corp of America
-${CLOSE_DATE}=    2022-02-22
-${OBJECT_TYPE}=    Opportunity
-${STAGE_NAME}=    Closed Won
-
 *** Tasks ***
-Create a new Opportunity using the convenience keyword
-    ${object_id}=
-    ...    Create New Opportunity
-    ...    close_date=${CLOSE_DATE}
-    ...    opportunity_name=${RANDOM_NAME}
-    ...    stage_name=${STAGE_NAME}
-    ...    account_name=${ACCOUNT_NAME}
-    ${opportunity}=    Get and log object    ${OBJECT_TYPE}    ${object_id}
-
-Create a new Opportunity using the generic object creation keyword
+Create a new Salesforce object (Opportunity)
+    # Salesforce -> Setup -> Object Manager -> Opportunity -> Fields & Relationships.
+    # Pass in data as a dictionary of object field names.
     ${account}=
     ...    Salesforce Query Result As Table
-    ...    SELECT Id FROM Account WHERE Name = '${ACCOUNT_NAME}'
+    ...    SELECT Id FROM Account WHERE Name = 'Burlington Textiles Corp of America'
     ${object_data}=
     ...    Create Dictionary
     ...    AccountId=${account}[0][0]
-    ...    CloseDate=${CLOSE_DATE}
+    ...    CloseDate=2022-02-22
     ...    Name=${RANDOM_NAME}
-    ...    StageName=${STAGE_NAME}
-    ${object}=
-    ...    Create Salesforce Object
-    ...    object_type=${OBJECT_TYPE}
-    ...    object_data=${object_data}
-    ${opportunity}=    Get and log object    ${OBJECT_TYPE}    ${object}[id]
+    ...    StageName=Closed Won
+    ${object}=    Create Salesforce Object    Opportunity    ${object_data}
+    ${opportunity}=    Get Salesforce Object By Id    Opportunity    ${object}[id]
+    Log Dictionary    ${opportunity}
+
+Query objects using Salesforce Object Query Language (SOQL)
+    # Salesforce -> Documentation -> Example SELECT Clauses.
+    # Salesforce -> Setup -> Object Manager -> <Type> -> Fields & Relationships.
+    ${opportunity}=
+    ...    Salesforce Query Result As Table
+    ...    SELECT AccountId, Amount, CloseDate, Description, Name FROM Opportunity
+    ${list}=    Export Table    ${opportunity}
+    Log List    ${list}
+
+Describe a Salesforce object by type
+    ${description}=    Describe Salesforce Object    Opportunity
+    Log Dictionary    ${description}
+
+Describe all picklist values for a Salesforce object field
+    ${description}=    Describe Salesforce Object    Opportunity
+    FOR    ${field}    IN    @{description}[fields]
+        IF    "${field}[name]" == "StageName"
+            Log List    ${field}[picklistValues]
+        END
+    END
+
+Get the metadata for a Salesforce object
+    ${metadata}=    Get Salesforce Object Metadata    Opportunity
+    Log Dictionary    ${metadata}
 
 *** Keywords ***
 Authenticate
@@ -58,9 +62,3 @@ Authenticate
 Generate random name
     ${random_string}=    Generate Random String
     Set Suite Variable    ${RANDOM_NAME}    Random name ${random_string}
-
-Get and log object
-    [Arguments]    ${object_type}    ${object_id}
-    ${object}=    Get Salesforce Object By Id    ${object_type}    ${object_id}
-    Log Dictionary    ${object}
-    [Return]    ${object}

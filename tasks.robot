@@ -1,13 +1,16 @@
 *** Settings ***
-Documentation     Salesforce API examples.
-...               Prerequisites: See README.md
-Library           Collections
-Library           RPA.Robocorp.Vault
-Library           RPA.Salesforce
-Library           String
-Library           RPA.Tables
-Suite Setup       Authenticate
-Task Setup        Generate random name
+Documentation       Salesforce API examples.
+...                 Prerequisites: See README.md
+
+Library             Collections
+Library             RPA.Robocorp.Vault
+Library             RPA.Salesforce
+Library             String
+Library             RPA.Tables
+
+Suite Setup         Authenticate
+Task Setup          Generate random name
+
 
 *** Tasks ***
 Create a new Salesforce object (Opportunity)
@@ -50,6 +53,7 @@ Describe all picklist values for a Salesforce object field
 Get the metadata for a Salesforce object
     ${metadata}=    Get Salesforce Object Metadata    Opportunity
     Log Dictionary    ${metadata}
+
 
 *** Keywords ***
 Authenticate
